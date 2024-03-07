@@ -60,13 +60,16 @@
 //         .for_custom(|x| print!("{}", x))
 // }
 
+use std::fmt::Debug;
+
 pub trait Iterator {
     type Item;
 
     fn next(&mut self) -> Option<Self::Item>;
 }
 
-struct MonIterator<T> 
+#[derive(Debug)]
+pub struct MonIterator<T> 
 where T: Clone {
     x: Vec<T>,
     state: usize,
@@ -84,11 +87,48 @@ where T: Clone {
     }
 }
 
+pub trait Custom {
+    type Iterator;
+
+    fn iter_custom(self) -> Self::Iterator;
+}
+
+impl<T> Custom for Vec<T>
+where T:Clone {
+    type Iterator = MonIterator<T>;
+
+    fn iter_custom(self) -> Self::Iterator {
+        MonIterator{ x: self, state: 0usize }
+    }
+}
+
+pub trait Producer<T> {
+    type Item;
+
+    fn for_custom<F>(&mut self, f: F)
+    where F: FnMut(T);
+}
+
+impl<T> Producer<T> for MonIterator<T>
+where T: Clone + Debug {
+    type Item = T;
+
+    fn for_custom<F>(&mut self, mut f: F)
+    where F: FnMut(Self::Item) {
+        loop {
+            match self.next() {
+                Some(x) => f(x),
+                None => break,
+            }
+        }
+    }
+}
 
 fn main (){
     let vec = vec![1, 2, 3, 4];
-//     vec.iter_custom()
-//         .for_custom(|x| print!("{}", x));
+    vec
+        .iter_custom()
+        .for_custom(|x| println!("{:?}", x));
 
 //     vec.iter_custom()
 //         .map_custom(|x| x*x)
